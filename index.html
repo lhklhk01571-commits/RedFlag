@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>테트리스</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="app" data-status="ready">
+      <header class="top">
+        <h1>테트리스</h1>
+        <p class="hint">← → 이동 · ↑ 회전 · Z 반대 회전 · ↓ 한 칸 · Space 한번에 · C 홀드 · P 일시정지</p>
+      </header>
+      <section class="stage">
+        <aside class="panel">
+          <h2>홀드</h2>
+          <canvas id="hold" width="112" height="96" aria-label="보관한 블록"></canvas>
+          <dl class="stats">
+            <div><dt>점수</dt><dd id="score">0</dd></div>
+            <div><dt>최고</dt><dd id="best">0</dd></div>
+          </dl>
+        </aside>
+        <div class="well-wrap">
+          <canvas id="board" width="300" height="600" aria-label="게임 판"></canvas>
+          <div id="overlay" class="overlay">
+            <h2 id="overlay-title">테트리스</h2>
+            <p id="overlay-text">줄을 채워 지우면 점수가 오릅니다.</p>
+            <button id="action" class="primary" type="button">시작</button>
+          </div>
+          <p id="banner" class="banner" hidden></p>
+        </div>
+        <aside class="panel">
+          <h2>다음</h2>
+          <canvas id="next" width="112" height="280" aria-label="다음 블록"></canvas>
+          <dl class="stats">
+            <div><dt>레벨</dt><dd id="level">1</dd></div>
+            <div><dt>줄</dt><dd id="lines">0</dd></div>
+          </dl>
+        </aside>
+      </section>
+      <div class="pad" aria-label="터치 조작">
+        <button type="button" data-action="hold">홀드</button>
+        <button type="button" data-action="rot">회전</button>
+        <button type="button" data-action="pause">정지</button>
+        <button type="button" data-action="left" aria-label="왼쪽">←</button>
+        <button type="button" data-action="down" aria-label="한 칸 내리기">↓</button>
+        <button type="button" data-action="right" aria-label="오른쪽">→</button>
+        <button type="button" class="wide" data-action="drop">한번에 내리기</button>
+      </div>
+    </main>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
