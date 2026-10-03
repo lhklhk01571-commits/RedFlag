@@ -1,0 +1,9 @@
+{
+  "name": "redflag-tetris",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/engine.test.js",
+    "start": "node scripts/serve.mjs"
+  }
+}
