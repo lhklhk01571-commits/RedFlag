@@ -120,6 +120,7 @@ button, canvas { font: inherit; }
 .overlay {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -181,8 +182,60 @@ button, canvas { font: inherit; }
 .pad .wide { grid-column: 1 / -1; }
 
 @media (max-width: 800px) {
+  .app {
+    width: min(100% - 12px, 520px);
+    height: 100vh;
+    height: 100dvh;
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .top h1 { font-size: 1.25rem; }
   .hint { display: none; }
-  .stage { grid-template-columns: 1fr 1fr; }
-  .well-wrap { grid-column: 1 / -1; order: -1; }
-  .pad { display: grid; }
+
+  .stage {
+    flex: 1;
+    min-height: 0;
+    margin-top: 8px;
+    grid-template-columns: 84px minmax(0, 1fr) 84px;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .well-wrap {
+    width: auto;
+    min-height: 0;
+    order: 0;
+    grid-column: auto;
+    display: grid;
+    place-items: center;
+  }
+
+  #board {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .panel {
+    min-height: 0;
+    padding: 8px 6px;
+    overflow: auto;
+  }
+
+  .panel h2 { margin-bottom: 4px; }
+  .stats { margin-top: 8px; gap: 6px; }
+  .stats dd { font-size: 1rem; }
+
+  .pad {
+    display: grid;
+    width: 100%;
+    margin-top: 8px;
+    flex: none;
+  }
+
+  .pad button { min-height: 44px; }
 }
