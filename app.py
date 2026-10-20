@@ -6,6 +6,8 @@ N라운드에 걸쳐 서로의 의견을 수용·반영하며 제안을 발전�
 마지막에 통합 AI가 수렴된 내용을 종합해 최종 통합 결론을 도출하는 단일 파일 웹앱.
 
 실행 방법:
+    Windows는 실행.bat 더블클릭 (가상환경·패키지 설치, .env 생성, 브라우저 열기까지 자동)
+    직접 실행할 때는
     1) .env.example을 복사해 .env를 만들고 OPENAI_API_KEY / ANTHROPIC_API_KEY / GOOGLE_API_KEY 설정
     2) pip install -r requirements.txt
     3) python app.py
@@ -15,7 +17,11 @@ N라운드에 걸쳐 서로의 의견을 수용·반영하며 제안을 발전�
 import os
 import random
 import operator
+import socket
+import threading
+import time
 import traceback
+import webbrowser
 from datetime import datetime
 from typing import Annotated, Dict, List, Optional, Tuple, TypedDict
 
@@ -32,9 +38,15 @@ import anthropic
 from google import genai
 from google.genai import types as genai_types
 
-_missing_keys = [k for k in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY") if not os.getenv(k)]
+# .env.example의 예시 값과 같아야 복사만 하고 키를 바꾸지 않은 경우를 잡아냅니다.
+ENV_EXAMPLE_PLACEHOLDER = "여기에본인키"
+_missing_keys = [
+    k
+    for k in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY")
+    if not os.getenv(k) or ENV_EXAMPLE_PLACEHOLDER in os.getenv(k)
+]
 if _missing_keys:
-    raise SystemExit(f".env에 다음 API 키가 없습니다: {', '.join(_missing_keys)} (.env.example 참고)")
+    raise SystemExit(f".env에 다음 API 키가 없거나 예시 값 그대로입니다: {', '.join(_missing_keys)} (.env.example 참고)")
 
 # 3사 모델을 같은 가격대로 맞춰야 토론 결과가 모델 성능차가 아닌 논리/근거의 질로 갈립니다.
 # (2026-10 기준 세 모델 모두 100만 토큰당 입력 $2 / 출력 $10. 단, Gemini 4 Argon은 12/1부터 $4 / $20)
@@ -741,6 +753,20 @@ def api_debate():
     )
 
 
+def open_browser_when_ready(port: int, wait_seconds: float = 60) -> bool:
+    # 서버가 접속을 받기 전에 열면 브라우저에 연결 오류 화면이 뜨므로 포트가 열릴 때까지 기다립니다.
+    deadline = time.monotonic() + wait_seconds
+    while time.monotonic() < deadline:
+        try:
+            socket.create_connection(("127.0.0.1", port), timeout=1).close()
+        except OSError:
+            time.sleep(0.5)
+            continue
+        webbrowser.open(f"http://localhost:{port}")
+        return True
+    return False
+
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     print("=" * 50)
@@ -750,5 +776,8 @@ if __name__ == "__main__":
     print(f"  통합 담당: {JUDGE_MODEL_ID} / 추론 강도: {REASONING_EFFORT or '(지정 안 함)'}")
     print(f"브라우저에서 http://localhost:{port} 접속")
     print("=" * 50)
+    # 실행.bat이 OPEN_BROWSER=1로 실행. 디버그 모드의 자동 재시작 프로세스(WERKZEUG_RUN_MAIN)에서는 다시 열지 않음
+    if os.getenv("OPEN_BROWSER") == "1" and os.getenv("WERKZEUG_RUN_MAIN") != "true":
+        threading.Thread(target=open_browser_when_ready, args=(port,), daemon=True).start()
     # 디버그 모드는 오류 화면에서 서버 코드를 실행할 수 있는 콘솔을 열어주므로 기본은 끔
     app.run(host="127.0.0.1", port=port, debug=os.getenv("FLASK_DEBUG") == "1")
