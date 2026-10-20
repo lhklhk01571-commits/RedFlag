@@ -5,6 +5,9 @@
 """
 
 import os
+import socket
+import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -265,6 +268,43 @@ class DebateTestCase(unittest.TestCase):
         self.assertEqual(self.run_debate("99")["max_rounds"], 5)
         self.assertEqual(self.run_debate("abc")["max_rounds"], 3)
         self.assertEqual(self.run_debate(0)["max_rounds"], 1)
+
+
+class LauncherSupportTestCase(unittest.TestCase):
+    """실행.bat이 기대하는 app.py 동작 (브라우저 자동 열기, 예시 키 차단)."""
+
+    def test_browser_opens_once_server_accepts_connections(self):
+        with socket.socket() as server:
+            server.bind(("127.0.0.1", 0))
+            server.listen()
+            port = server.getsockname()[1]
+            with mock.patch.object(app.webbrowser, "open") as open_browser:
+                self.assertTrue(app.open_browser_when_ready(port, wait_seconds=5))
+        open_browser.assert_called_once_with(f"http://localhost:{port}")
+
+    def test_browser_is_not_opened_when_server_never_starts(self):
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+        with mock.patch.object(app.webbrowser, "open") as open_browser:
+            self.assertFalse(app.open_browser_when_ready(port, wait_seconds=1))
+        open_browser.assert_not_called()
+
+    def test_placeholder_key_from_env_example_stops_startup(self):
+        env = {**os.environ, "OPENAI_API_KEY": "sk-여기에본인키", "PYTHONIOENCODING": "utf-8"}
+        result = subprocess.run(
+            [sys.executable, "-c", "import app"],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=120,
+        )
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("OPENAI_API_KEY", result.stderr)
+        self.assertNotIn("ANTHROPIC_API_KEY", result.stderr)
+        self.assertIn("예시 값 그대로", result.stderr)
 
 
 if __name__ == "__main__":
