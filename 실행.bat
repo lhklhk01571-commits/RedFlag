@@ -21,9 +21,9 @@ if exist ".env" goto :env_ready
 if exist ".env.example" (
     copy /y ".env.example" ".env" >nul
 ) else (
-    > ".env" echo OPENAI_API_KEY=sk-여기에본인키
-    >> ".env" echo ANTHROPIC_API_KEY=sk-ant-여기에본인키
-    >> ".env" echo GOOGLE_API_KEY=여기에본인키
+    > ".env" echo OPENAI_API_KEY=
+    >> ".env" echo ANTHROPIC_API_KEY=
+    >> ".env" echo GOOGLE_API_KEY=
 )
 set "ENV_CREATED=1"
 echo .env 파일을 만들었습니다. 지금 열리는 메모장에 API 키 3개를 붙여넣고 저장하세요.
@@ -35,17 +35,18 @@ start "" notepad ".env"
 set "VENV_PY=.venv\Scripts\python.exe"
 set "PY_MIN_CHECK=import sys; sys.exit(sys.version_info < (3, 10))"
 if not exist "%VENV_PY%" goto :create_venv
-"%VENV_PY%" -c "%PY_MIN_CHECK%" >nul 2>&1 && goto :venv_ready
+"%VENV_PY%" -c "%PY_MIN_CHECK%" >nul 2>&1
+if "%errorlevel%"=="0" goto :venv_ready
 echo 기존 가상환경(.venv)을 쓸 수 없어 새로 만듭니다.
-rmdir /s /q ".venv"
 
 :create_venv
 rem 3.15는 PyYAML의 Windows용 설치 파일이 아직 없어 패키지 설치가 실패할 수 있으므로 3.14 이하를 먼저 찾습니다.
 set "BASE_PY="
-for %%V in (3.14 3.13 3.12 3.11 3.10) do if not defined BASE_PY py -%%V -c "%PY_MIN_CHECK%" >nul 2>&1 && set "BASE_PY=py -%%V"
-if not defined BASE_PY py -3 -c "%PY_MIN_CHECK%" >nul 2>&1 && set "BASE_PY=py -3"
-if not defined BASE_PY python -c "%PY_MIN_CHECK%" >nul 2>&1 && set "BASE_PY=python"
+for %%V in (3.14 3.13 3.12 3.11 3.10) do call :try_python "py -%%V"
+call :try_python "py -3"
+call :try_python "python"
 if not defined BASE_PY goto :missing_python
+if exist ".venv" rmdir /s /q ".venv"
 echo 가상환경(.venv)을 만드는 중입니다...
 %BASE_PY% --version
 %BASE_PY% -m venv .venv
@@ -53,7 +54,8 @@ if errorlevel 1 goto :venv_failed
 :venv_ready
 
 set "STAMP=.venv\requirements.installed"
-fc /b "requirements.txt" "%STAMP%" >nul 2>&1 && goto :deps_ready
+"%VENV_PY%" -c "import filecmp, sys; sys.exit(not filecmp.cmp('requirements.txt', r'%STAMP%', shallow=False))" >nul 2>&1
+if "%errorlevel%"=="0" goto :deps_ready
 echo 필요한 패키지를 설치하는 중입니다. 처음 한 번은 몇 분 걸릴 수 있습니다...
 "%VENV_PY%" -m pip install --disable-pip-version-check -r requirements.txt
 if errorlevel 1 goto :pip_failed
@@ -111,3 +113,12 @@ echo.
 pause
 if defined ORIGINAL_CP chcp %ORIGINAL_CP% >nul 2>&1
 endlocal
+exit /b
+
+rem 인자로 받은 Python 명령이 3.10 이상이면 BASE_PY로 정합니다. (이미 정해졌으면 건너뜀)
+rem "명령 && ..." 은 일부 cmd 구현(Wine 등)에서 실패해도 뒤가 실행되므로 errorlevel을 직접 확인합니다.
+:try_python
+if defined BASE_PY exit /b
+%~1 -c "%PY_MIN_CHECK%" >nul 2>&1
+if "%errorlevel%"=="0" set "BASE_PY=%~1"
+exit /b
