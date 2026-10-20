@@ -86,7 +86,7 @@ goto :end
 
 :missing_app
 echo 실행.bat은 app.py, requirements.txt와 같은 폴더에 있어야 합니다.
-echo 현재 폴더: %CD%
+echo 현재 폴더: "%CD%"
 goto :end
 
 :missing_python
